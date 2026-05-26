@@ -1,295 +1,194 @@
+# Trees Hate You – ONE FILE VERSION
+
+Save this as `index.html` and open it in your browser.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trees Hate You - 3D Working Remake</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background-color: #111;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-        h1 {
-            color: #ff3b3b;
-            text-shadow: 3px 3px 0px #000;
-            margin-bottom: 5px;
-            letter-spacing: 2px;
-        }
-        .subtitle {
-            color: #aaa;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        #game-container {
-            position: relative;
-            width: 800px;
-            height: 500px;
-            border: 4px solid #fff;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-            background: #000;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-        /* FIXED LAYOUT INTERCEPTION LAYER */
-        .screen {
-            position: absolute;
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999 !important; /* Force layout over canvas element */
-        }
-        #overlay-title {
-            color: #4caf50;
-            font-size: 32px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        #overlay-sub {
-            color: #ccc;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 15px 35px;
-            font-size: 22px;
-            font-weight: bold;
-            background: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #2e7d32;
-            position: relative;
-            z-index: 100000 !important; /* Ensure interactive layer dominance */
-        }
-        button:hover { background: #45a049; }
-        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #2e7d32; }
-        #death-counter {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            font-size: 18px;
-            color: #ff3b3b;
-            font-weight: bold;
-            z-index: 10;
-        }
-        #instructions {
-            position: absolute;
-            bottom: 15px;
-            left: 20px;
-            font-size: 14px;
-            color: #fff;
-            background: rgba(0,0,0,0.6);
-            padding: 5px 10px;
-            border-radius: 4px;
-            z-index: 10;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trees Hate You</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  overflow:hidden;
+  font-family:Arial;
+  background:#6fcf65;
+}
+
+canvas{
+  display:block;
+}
+
+#ui{
+  position:fixed;
+  top:10px;
+  left:10px;
+  background:rgba(0,0,0,0.7);
+  color:white;
+  padding:12px;
+  border-radius:12px;
+  z-index:10;
+}
+</style>
 </head>
 <body>
 
-    <h1>TREES HATE YOU</h1>
-    <p class="subtitle">The forest is rigged. Do not trust the scenery.</p>
+<div id="ui">
+  <h2>Trees Hate You</h2>
+  <p>Health: <span id="health">100</span></p>
+  <p>Wood: <span id="wood">0</span></p>
+  <p>WASD = Move</p>
+  <p>Click = Chop Trees</p>
+</div>
 
-    <div id="game-container">
-        <div id="death-counter">DEATHS: <span id="deaths-val">0</span></div>
-        <div id="instructions">← → / A D to dodge | Space to sprint/bait</div>
-        
-        <!-- UI Overlay Screen Layer -->
-        <div id="overlay" class="screen">
-            <h2 id="overlay-title">YOU HAD A NICE PICNIC...</h2>
-            <p id="overlay-sub">But now it's time to walk home through the forest.</p>
-            <button id="action-btn">ENTER THE FOREST</button>
-        </div>
+<canvas id="game"></canvas>
 
-        <canvas id="gameCanvas" width="800" height="500"></canvas>
-    </div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const overlay = document.getElementById('overlay');
-        const overlayTitle = document.getElementById('overlay-title');
-        const overlaySub = document.getElementById('overlay-sub');
-        const actionBtn = document.getElementById('action-btn');
-        const deathsVal = document.getElementById('deaths-val');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-        const HORIZON_Y = 220;
+const healthText = document.getElementById('health');
+const woodText = document.getElementById('wood');
 
-        let gameActive = false;
-        let deaths = 0;
-        let distanceWalked = 0;
-        let playerX = 0; 
-        let targetPlayerX = 0;
-        let speed = 2.5;
-        let forestObjects = [];
-        let projectiles = [];
-        let particles = [];
-        let keys = {};
-        let spawnTimer = 0;
+const player = {
+  x: canvas.width/2,
+  y: canvas.height/2,
+  size: 30,
+  speed: 5,
+  health: 100,
+  wood: 0
+};
 
-        // Key Listeners
-        window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-        window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-        
-        // Rock solid structural click assignment
-        actionBtn.onclick = function(e) {
-            startNewRun();
-        };
+const keys = {};
+const trees = [];
 
-        function startNewRun() {
-            overlay.style.setProperty('display', 'none', 'important');
-            distanceWalked = 0;
-            playerX = 0;
-            targetPlayerX = 0;
-            forestObjects = [];
-            projectiles = [];
-            particles = [];
-            spawnTimer = 0;
-            
-            for(let i=0; i<15; i++) {
-                spawnEnvironmentObject(Math.random() * 0.8);
-            }
-            
-            gameActive = true;
-        }
+function makeTree(){
+  trees.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    size: 40,
+    hp: 3,
+    angry:false
+  });
+}
 
-        function triggerDeath(reason) {
-            gameActive = false;
-            deaths++;
-            deathsVal.textContent = deaths;
-            
-            for(let i=0; i<40; i++) {
-                particles.push({
-                    x: canvas.width / 2 + (Math.random() - 0.5) * 300,
-                    y: canvas.height - 100 + (Math.random() - 0.5) * 100,
-                    vx: (Math.random() - 0.5) * 16 - 8,
-                    vy: (Math.random() - 0.5) * 16 - 8,
-                    color: Math.random() > 0.5 ? '#ff3b3b' : '#ff9800',
-                    radius: Math.random() * 6 + 4,
-                    alpha: 1
-                });
-            }
+for(let i=0;i<15;i++){
+  makeTree();
+}
 
-            setTimeout(() => {
-                overlayTitle.textContent = "THE TREES OUTPLAYED YOU";
-                overlayTitle.style.color = "#ff3b3b";
-                overlaySub.textContent = `${reason} (Progress: ${Math.floor(distanceWalked)}m)`;
-                actionBtn.textContent = "RESPAWN (TRY AGAIN)";
-                overlay.style.setProperty('display', 'flex', 'important');
-            }, 500);
-        }
+window.addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()] = true;
+});
 
-        function spawnEnvironmentObject(forcedZ = 0) {
-            let z = forcedZ ? forcedZ : 1.0; 
-            let side = Math.random() > 0.5 ? 1 : -1;
-            let xOffset = side * (Math.random() * 320 + 40); 
+window.addEventListener('keyup',e=>{
+  keys[e.key.toLowerCase()] = false;
+});
 
-            let rand = Math.random();
-            let type = 'scenery';
-            
-            if (!forcedZ) { 
-                if (rand < 0.30) type = 'charger';  
-                else if (rand < 0.55) type = 'sniper'; 
-                else if (rand < 0.65) type = 'fake_sign'; 
-            }
+canvas.addEventListener('click',()=>{
+  trees.forEach((tree,index)=>{
+    const dx = player.x-tree.x;
+    const dy = player.y-tree.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
 
-            forestObjects.push({
-                type: type,
-                xOffset: xOffset,
-                z: z,
-                activated: false,
-                hasShot: false,
-                color: `hsl(${100 + Math.random()*40}, 60%, ${25 + Math.random()*15}%)`,
-                signText: Math.random() > 0.5 ? "SAFE PATH →" : "↑ GO HOME"
-            });
-        }
+    if(dist < 80){
+      tree.hp--;
+      tree.angry = true;
 
-        function update() {
-            ctx.fillStyle = '#b3e5fc';
-            ctx.fillRect(0, 0, canvas.width, HORIZON_Y);
+      if(tree.hp <= 0){
+        trees.splice(index,1);
+        player.wood += 10;
+        woodText.textContent = player.wood;
+        makeTree();
+      }
+    }
+  });
+});
 
-            ctx.fillStyle = '#8d6e63';
-            ctx.fillRect(0, HORIZON_Y, canvas.width, canvas.height - HORIZON_Y);
+function movePlayer(){
+  if(keys['w']) player.y -= player.speed;
+  if(keys['s']) player.y += player.speed;
+  if(keys['a']) player.x -= player.speed;
+  if(keys['d']) player.x += player.speed;
+}
 
-            ctx.strokeStyle = '#71584f';
-            ctx.lineWidth = 2;
-            for(let i = -4; i <= 4; i++) {
-                ctx.beginPath();
-                ctx.moveTo(canvas.width / 2, HORIZON_Y);
-                ctx.lineTo(canvas.width / 2 + (i * 250) - (playerX * 2), canvas.height);
-                ctx.stroke();
-            }
+function updateTrees(){
+  trees.forEach(tree=>{
+    if(tree.angry){
+      const dx = player.x-tree.x;
+      const dy = player.y-tree.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
 
-            if (gameActive) {
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.fillRect(20, 20, 200, 15);
-                ctx.fillStyle = "#4caf50";
-                ctx.fillRect(20, 20, Math.min(200, distanceWalked * 2), 15);
-                ctx.strokeStyle = "#fff";
-                ctx.strokeRect(20, 20, 200, 15);
-            }
+      tree.x += (dx/dist)*1.5;
+      tree.y += (dy/dist)*1.5;
 
-            handleParticles();
+      if(dist < 35){
+        player.health -= 0.1;
+        healthText.textContent = Math.floor(player.health);
+      }
+    }
+  });
+}
 
-            if (gameActive) {
-                distanceWalked += speed * 0.05;
-                
-                if (keys['arrowleft'] || keys['a']) targetPlayerX -= 10;
-                if (keys['arrowright'] || keys['d']) targetPlayerX += 10;
-                if (keys[' ']) speed = 5.5; else speed = 2.5; 
+function drawGround(){
+  ctx.fillStyle = '#6fcf65';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
 
-                targetPlayerX = Math.max(-280, Math.min(280, targetPlayerX));
-                playerX += (targetPlayerX - playerX) * 0.2; 
+function drawPlayer(){
+  ctx.fillStyle = 'blue';
+  ctx.fillRect(
+    player.x-player.size/2,
+    player.y-player.size/2,
+    player.size,
+    player.size
+  );
+}
 
-                spawnTimer++;
-                if (spawnTimer % 20 === 0) spawnEnvironmentObject();
+function drawTrees(){
+  trees.forEach(tree=>{
+    ctx.fillStyle = tree.angry ? 'darkred' : 'green';
 
-                handleProjectiles();
-            }
+    ctx.beginPath();
+    ctx.arc(tree.x,tree.y,20,0,Math.PI*2);
+    ctx.fill();
 
-            forestObjects.sort((a, b) => b.z - a.z);
-            handleForestObjects();
+    ctx.fillStyle='brown';
+    ctx.fillRect(tree.x-5,tree.y+10,10,25);
+  });
+}
 
-            if (gameActive) renderPlayerCharacter();
+function gameLoop(){
+  drawGround();
 
-            requestAnimationFrame(update);
-        }
+  movePlayer();
+  updateTrees();
 
-        function handleForestObjects() {
-            for (let i = forestObjects.length - 1; i >= 0; i--) {
-                let obj = forestObjects[i];
-                if (gameActive) obj.z -= speed * 0.0035;
+  drawTrees();
+  drawPlayer();
 
-                if (obj.z <= 0.05) {
-                    forestObjects.splice(i, 1);
-                    continue;
-                }
+  if(player.health > 0){
+    requestAnimationFrame(gameLoop);
+  }else{
+    ctx.fillStyle='black';
+    ctx.font='60px Arial';
+    ctx.fillText('GAME OVER',canvas.width/2-180,canvas.height/2);
+  }
+}
 
-                let scale = 1 / obj.z;
-                let screenX = (canvas.width / 2) + (obj.xOffset - playerX) * scale;
-                let screenY = HORIZON_Y + (120 * scale);
-                let objSize = 40 * scale;
+gameLoop();
+</script>
 
-                if (gameActive && obj.z < 0.6) { 
-                    if (obj.type === 'charger' && !obj.activated) {
-                        obj.activated = true;
-                        obj.vx = obj.xOffset > 0 ? -14 : 14;
-                    }
+</body>
+</html>
+```
