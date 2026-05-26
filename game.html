@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trees Hate You - Remake</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 10px;
+            color: #4caf50;
+            text-shadow: 2px 2px #000;
+        }
+        #game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background: linear-gradient(to bottom, #87ceeb, #e0f6ff);
+            border: 4px solid #333;
+            border-bottom: 20px solid #8b5a2b; /* Ground */
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #player {
+            position: absolute;
+            bottom: 0;
+            left: 180px;
+            width: 40px;
+            height: 50px;
+            background-color: #ff5722; /* Flannel shirt color */
+            border-radius: 5px;
+            transition: left 0.05s linear;
+        }
+        /* Lumberjack beard and hat detail */
+        #player::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 5px;
+            width: 30px;
+            height: 15px;
+            background-color: #3e2723; /* Hat */
+            border-radius: 5px 5px 0 0;
+        }
+        .log {
+            position: absolute;
+            width: 60px;
+            height: 25px;
+            background-color: #8b5a2b;
+            border: 2px solid #5d3a1a;
+            border-radius: 5px;
+        }
+        /* Rings on the side of the log */
+        .log::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            top: 2px;
+            width: 6px;
+            height: 17px;
+            background-color: #d7ccc8;
+            border-radius: 50%;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            z-index: 10;
+        }
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            font-family: inherit;
+            font-weight: bold;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .controls-hint {
+            margin-top: 15px;
+            color: #aaa;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>TREES HATE YOU</h1>
+    
+    <div id="game-container">
+        <div id="ui">Score: <span id="score">0</span></div>
+        <div id="player"></div>
+        
+        <div id="game-over-screen">
+            <h2>THE TREES WON</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="start-btn">PLAY</button>
+        </div>
+    </div>
+
+    <div class="controls-hint">Use Left and Right Arrow Keys to move.</div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreDisplay = document.getElementById('score');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const startBtn = document.getElementById('start-btn');
+
+        const containerWidth = 400;
+        const containerHeight = 580; // Minus ground height
+        const playerWidth = 40;
+        
+        let playerX = 180;
+        let playerSpeed = 15;
+        let score = 0;
+        let gameActive = false;
+        let logs = [];
+        let spawnInterval;
+        let gameLoopInterval;
+        let logSpeed = 4;
+        let spawnRate = 1000; // ms
+
+        // Handle Keyboard Inputs
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            if (e.key === 'ArrowLeft') {
+                playerX = Math.max(0, playerX - playerSpeed);
+            } else if (e.key === 'ArrowRight') {
+                playerX = Math.min(containerWidth - playerWidth, playerX + playerSpeed);
+            }
+            player.style.left = playerX + 'px';
+        });
+
+        // Start/Restart Game
+        startBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            // Reset variables
+            score = 0;
+            logSpeed = 4;
+            spawnRate = 1000;
+            playerX = 180;
+            player.style.left = playerX + 'px';
+            scoreDisplay.textContent = score;
+            
+            // Clear existing logs
+            logs.forEach(log => log.element.remove());
+            logs = [];
+
+            // Hide screen
+            gameOverScreen.style.display = 'none';
+            gameActive = true;
+
+            // Start loops
+            clearInterval(gameLoopInterval);
+            clearInterval(spawnInterval);
+            
+            gameLoopInterval = setInterval(updateGame, 20);
+            initSpawnTimer();
+        }
+
+        function initSpawnTimer() {
+            clearInterval(spawnInterval);
+            spawnInterval = setInterval(() => {
+                if (gameActive) spawnLog();
+            }, spawnRate);
+        }
+
+        function spawnLog() {
+            const logElement = document.createElement('div');
+            logElement.classList.add('log');
+            
+            // Random horizontal position
+            const logX = Math.floor(Math.random() * (containerWidth - 60));
+            logElement.style.left = logX + 'px';
+            logElement.style.top = '-30px';
+            
+            container.appendChild(logElement);
+            
+            logs.push({
+                element: logElement,
+                x: logX,
+                y: -30
+            });
+
+            // Gradually increase difficulty
+            if (score > 0 && score % 5 === 0 && logSpeed < 12) {
+                logSpeed += 0.5;
+                if (spawnRate > 400) {
+                    spawnRate -= 50;
+                    initSpawnTimer();
+                }
+            }
+        }
+
+        function updateGame() {
+            for (let i = logs.length - 1; i >= 0; i--) {
+                let log = logs[i];
+                log.y += logSpeed;
+                log.element.style.top = log.y + 'px';
+
+                // Check for collision with player
+                if (checkCollision(log)) {
+                    endGame();
+                    return;
+                }
+
+                // Check if log reached bottom safely
+                if (log.y > containerHeight) {
+                    log.element.remove();
+                    logs.splice(i, 1);
+                    score++;
+                    scoreDisplay.textContent = score;
+                }
+            }
+        }
+
+        function checkCollision(log) {
+            // Player box bounds
+            const playerLeft = playerX;
+            const playerRight = playerX + playerWidth;
+            const playerTop = containerHeight - 50; 
+
+            // Log box bounds
+            const logLeft = log.x;
+            const logRight = log.x + 60;
+            const logTop = log.y;
+            const logBottom = log.y + 25;
+
+            return (
+                logRight > playerLeft &&
+                logLeft < playerRight &&
+                logBottom > playerTop &&
+                logTop < containerHeight
+            );
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(gameLoopInterval);
+            clearInterval(spawnInterval);
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
