@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trees Hate You - Remake</title>
+    <title>Trees Hate You - 3D Tribute Remake</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: #222;
+            background-color: #111;
             color: #fff;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -22,266 +18,265 @@
             overflow: hidden;
         }
         h1 {
-            margin-bottom: 10px;
-            color: #4caf50;
-            text-shadow: 2px 2px #000;
+            color: #ff3b3b;
+            text-shadow: 3px 3px 0px #000;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+        p.subtitle {
+            color: #aaa;
+            margin-bottom: 15px;
+            font-size: 14px;
         }
         #game-container {
             position: relative;
-            width: 400px;
-            height: 600px;
-            background: linear-gradient(to bottom, #87ceeb, #e0f6ff);
-            border: 4px solid #333;
-            border-bottom: 20px solid #8b5a2b; /* Ground */
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 800px;
+            height: 500px;
+            border: 4px solid #fff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+            background: #000;
         }
-        #player {
-            position: absolute;
-            bottom: 0;
-            left: 180px;
-            width: 40px;
-            height: 50px;
-            background-color: #ff5722; /* Flannel shirt color */
-            border-radius: 5px;
-            transition: left 0.05s linear;
-        }
-        /* Lumberjack beard and hat detail */
-        #player::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            left: 5px;
-            width: 30px;
-            height: 15px;
-            background-color: #3e2723; /* Hat */
-            border-radius: 5px 5px 0 0;
-        }
-        .log {
-            position: absolute;
-            width: 60px;
-            height: 25px;
-            background-color: #8b5a2b;
-            border: 2px solid #5d3a1a;
-            border-radius: 5px;
-        }
-        /* Rings on the side of the log */
-        .log::after {
-            content: '';
-            position: absolute;
-            right: 2px;
-            top: 2px;
-            width: 6px;
-            height: 17px;
-            background-color: #d7ccc8;
-            border-radius: 50%;
-        }
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            z-index: 10;
-        }
-        #game-over-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
+        canvas {
+            display: block;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+        }
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 20;
+            z-index: 10;
         }
         button {
-            padding: 10px 20px;
-            font-size: 18px;
-            font-family: inherit;
+            padding: 12px 30px;
+            font-size: 20px;
             font-weight: bold;
-            background-color: #4caf50;
+            background: #4caf50;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
             margin-top: 20px;
+            box-shadow: 0 4px 0 #2e7d32;
         }
-        button:hover {
-            background-color: #45a049;
+        button:hover { background: #45a049; }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #2e7d32; }
+        #death-counter {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 18px;
+            color: #ff3b3b;
+            font-weight: bold;
         }
-        .controls-hint {
-            margin-top: 15px;
-            color: #aaa;
+        #instructions {
+            position: absolute;
+            bottom: 15px;
+            left: 20px;
             font-size: 14px;
+            color: #fff;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 10px;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
 
     <h1>TREES HATE YOU</h1>
-    
+    <p class="subtitle">The forest is rigged. Do not trust the scenery.</p>
+
     <div id="game-container">
-        <div id="ui">Score: <span id="score">0</span></div>
-        <div id="player"></div>
+        <div id="death-counter">DEATHS: <span id="deaths-val">0</span></div>
+        <div id="instructions">← → / A D to dodge | Space to bait/dash</div>
         
-        <div id="game-over-screen">
-            <h2>THE TREES WON</h2>
-            <p>Final Score: <span id="final-score">0</span></p>
-            <button id="start-btn">PLAY</button>
+        <!-- Start/Game Over Overlay -->
+        <div id="overlay" class="screen">
+            <h2 id="overlay-title" style="color: #4caf50; font-size: 32px;">YOU HAD A NICE PICNIC...</h2>
+            <p id="overlay-sub" style="margin-top: 10px; color: #ccc;">But now it's time to walk home through the forest.</p>
+            <button id="action-btn">ENTER THE FOREST</button>
         </div>
+
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
     </div>
 
-    <div class="controls-hint">Use Left and Right Arrow Keys to move.</div>
-
     <script>
-        const container = document.getElementById('game-container');
-        const player = document.getElementById('player');
-        const scoreDisplay = document.getElementById('score');
-        const finalScoreDisplay = document.getElementById('final-score');
-        const gameOverScreen = document.getElementById('game-over-screen');
-        const startBtn = document.getElementById('start-btn');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlaySub = document.getElementById('overlay-sub');
+        const actionBtn = document.getElementById('action-btn');
+        const deathsVal = document.getElementById('deaths-val');
 
-        const containerWidth = 400;
-        const containerHeight = 580; // Minus ground height
-        const playerWidth = 40;
-        
-        let playerX = 180;
-        let playerSpeed = 15;
-        let score = 0;
+        // Game State Variables
         let gameActive = false;
-        let logs = [];
-        let spawnInterval;
-        let gameLoopInterval;
-        let logSpeed = 4;
-        let spawnRate = 1000; // ms
+        let deaths = 0;
+        let distanceWalked = 0;
+        let playerX = 0; // Center is 0, ranges from -200 to 200
+        let targetPlayerX = 0;
+        let speed = 2.5;
+        let forestObjects = [];
+        let projectiles = [];
+        let particles = [];
+        let keys = {};
+        let spawnTimer = 0;
 
-        // Handle Keyboard Inputs
-        document.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-            
-            if (e.key === 'ArrowLeft') {
-                playerX = Math.max(0, playerX - playerSpeed);
-            } else if (e.key === 'ArrowRight') {
-                playerX = Math.min(containerWidth - playerWidth, playerX + playerSpeed);
-            }
-            player.style.left = playerX + 'px';
-        });
+        // Colors & Config
+        const HORIZON_Y = 220; // 3D Perspective vanishing point Y
 
-        // Start/Restart Game
-        startBtn.addEventListener('click', startGame);
+        // Event Listeners
+        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+        actionBtn.addEventListener('click', startNewRun);
 
-        function startGame() {
-            // Reset variables
-            score = 0;
-            logSpeed = 4;
-            spawnRate = 1000;
-            playerX = 180;
-            player.style.left = playerX + 'px';
-            scoreDisplay.textContent = score;
-            
-            // Clear existing logs
-            logs.forEach(log => log.element.remove());
-            logs = [];
-
-            // Hide screen
-            gameOverScreen.style.display = 'none';
+        function startNewRun() {
+            overlay.style.display = 'none';
             gameActive = true;
-
-            // Start loops
-            clearInterval(gameLoopInterval);
-            clearInterval(spawnInterval);
-            
-            gameLoopInterval = setInterval(updateGame, 20);
-            initSpawnTimer();
-        }
-
-        function initSpawnTimer() {
-            clearInterval(spawnInterval);
-            spawnInterval = setInterval(() => {
-                if (gameActive) spawnLog();
-            }, spawnRate);
-        }
-
-        function spawnLog() {
-            const logElement = document.createElement('div');
-            logElement.classList.add('log');
-            
-            // Random horizontal position
-            const logX = Math.floor(Math.random() * (containerWidth - 60));
-            logElement.style.left = logX + 'px';
-            logElement.style.top = '-30px';
-            
-            container.appendChild(logElement);
-            
-            logs.push({
-                element: logElement,
-                x: logX,
-                y: -30
-            });
-
-            // Gradually increase difficulty
-            if (score > 0 && score % 5 === 0 && logSpeed < 12) {
-                logSpeed += 0.5;
-                if (spawnRate > 400) {
-                    spawnRate -= 50;
-                    initSpawnTimer();
-                }
+            distanceWalked = 0;
+            playerX = 0;
+            targetPlayerX = 0;
+            forestObjects = [];
+            projectiles = [];
+            particles = [];
+            spawnTimer = 0;
+            // Spawn initial harmless decorative background trees
+            for(let i=0; i<15; i++) {
+                spawnEnvironmentObject(Math.random() * 0.8);
             }
         }
 
-        function updateGame() {
-            for (let i = logs.length - 1; i >= 0; i--) {
-                let log = logs[i];
-                log.y += logSpeed;
-                log.element.style.top = log.y + 'px';
-
-                // Check for collision with player
-                if (checkCollision(log)) {
-                    endGame();
-                    return;
-                }
-
-                // Check if log reached bottom safely
-                if (log.y > containerHeight) {
-                    log.element.remove();
-                    logs.splice(i, 1);
-                    score++;
-                    scoreDisplay.textContent = score;
-                }
-            }
-        }
-
-        function checkCollision(log) {
-            // Player box bounds
-            const playerLeft = playerX;
-            const playerRight = playerX + playerWidth;
-            const playerTop = containerHeight - 50; 
-
-            // Log box bounds
-            const logLeft = log.x;
-            const logRight = log.x + 60;
-            const logTop = log.y;
-            const logBottom = log.y + 25;
-
-            return (
-                logRight > playerLeft &&
-                logLeft < playerRight &&
-                logBottom > playerTop &&
-                logTop < containerHeight
-            );
-        }
-
-        function endGame() {
+        function triggerDeath(reason) {
             gameActive = false;
-            clearInterval(gameLoopInterval);
-            clearInterval(spawnInterval);
-            finalScoreDisplay.textContent = score;
-            gameOverScreen.style.display = 'flex';
+            deaths++;
+            deathsVal.textContent = deaths;
+            
+            // Create massive explosion particles at screen front
+            for(let i=0; i<40; i++) {
+                particles.push({
+                    x: canvas.width/2 + (Math.random() - 0.5) * 300,
+                    y: canvas.height - 100 + (Math.random() - 0.5) * 100,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 0.5) * 15,
+                    color: Math.random() > 0.5 ? '#ff3b3b' : '#ff9800',
+                    radius: Math.random() * 6 + 4,
+                    alpha: 1
+                });
+            }
+
+            setTimeout(() => {
+                overlayTitle.textContent = "THE TREES OUTPLAYED YOU";
+                overlayTitle.style.color = "#ff3b3b";
+                overlaySub.textContent = `Reason: ${reason} (Progress: ${Math.floor(distanceWalked)}m)`;
+                actionBtn.textContent = "RESPAWN (TRY AGAIN)";
+                overlay.style.display = 'flex';
+            }, 800);
         }
-    </script>
-</body>
-</html>
+
+        function spawnEnvironmentObject(forcedZ = 0) {
+            let z = forcedZ ? forcedZ : 1.0; // Start far away at horizon
+            let side = Math.random() > 0.5 ? 1 : -1;
+            // X offset relative to center track
+            let xOffset = side * (Math.random() * 300 + 60); 
+
+            // Determine if it's a trap tree, sniper tree, or scenery
+            let rand = Math.random();
+            let type = 'scenery';
+            
+            if (!forcedZ) { // Only traps spawn dynamically while walking
+                if (rand < 0.25) type = 'charger';  // Runs across your path
+                else if (rand < 0.45) type = 'sniper'; // Pulls out a gun
+                else if (rand < 0.55) type = 'fake_sign'; // Misleading text sign
+            }
+
+            forestObjects.push({
+                type: type,
+                xOffset: xOffset,
+                z: z,
+                activated: false,
+                armAngle: 0,
+                hasShot: false,
+                color: `hsl(${100 + Math.random()*40}, 60%, ${25 + Math.random()*15}%)`,
+                signText: Math.random() > 0.5 ? "SAFE PATH →" : "↑ GO HOME"
+            });
+        }
+
+        // Main game ticker loop
+        function update() {
+            // Background Canvas Drawing
+            renderSkyAndGround();
+
+            // Handle Particles even when dead
+            handleParticles();
+
+            if (gameActive) {
+                distanceWalked += speed * 0.05;
+                
+                // Handle Movement
+                if (keys['arrowleft'] || keys['a']) targetPlayerX -= 8;
+                if (keys['arrowright'] || keys['d']) targetPlayerX += 8;
+                if (keys[' ']) speed = 5; else speed = 2.5; // Dash/Bait
+
+                // Clamp player movement boundaries
+                targetPlayerX = Math.max(-250, Math.min(250, targetPlayerX));
+                playerX += (targetPlayerX - playerX) * 0.2; // Smooth camera/movement lag
+
+                // Procedural object spawning
+                spawnTimer++;
+                if (spawnTimer % 25 === 0) {
+                    spawnEnvironmentObject();
+                }
+
+                // Process Projectiles
+                handleProjectiles();
+            }
+
+            // Draw & Update Forest Elements (Sort by Z so close objects render on top)
+            forestObjects.sort((a, b) => b.z - a.z);
+            handleForestObjects();
+
+            // Draw Player UI/Crosshair/Vignette indicators
+            if (gameActive) {
+                renderPlayerCharacter();
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function renderSkyAndGround() {
+            // Sky
+            ctx.fillStyle = '#b3e5fc';
+            ctx.fillRect(0, 0, canvas.width, HORIZON_Y);
+
+            // Ground (Forest Path)
+            ctx.fillStyle = '#8d6e63';
+            ctx.fillRect(0, HORIZON_Y, canvas.width, canvas.height - HORIZON_Y);
+
+            // Perspective lines for the path
+            ctx.strokeStyle = '#71584f';
+            ctx.lineWidth = 2;
+            for(let i = -4; i <= 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, HORIZON_Y);
+                ctx.lineTo(canvas.width / 2 + (i * 250) - (playerX * 2), canvas.height);
+                ctx.stroke();
+            }
+            
+            // Draw Progress Bar
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillRect(20, 20, 200, 15);
+            ctx.fillStyle = "#4caf50";
+            ctx.fillRect(20, 20, Math.min(200, distanceWalked * 2), 15);
+            ctx.strokeStyle = "#fff";
+            ctx.strokeRect(20, 20, 200, 15);
+        }
+
+        function handleForestObjects() {
+            for (let i = forestObjects.length - 1; i >= 0; i--) {
+                let obj = forestObjects[i];
+                
+                if (gameActive) {
