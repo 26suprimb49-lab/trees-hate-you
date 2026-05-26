@@ -40,16 +40,23 @@
             display: block;
             width: 100%;
             height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
         .screen {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100; /* Force overlay on top */
+            z-index: 101; /* Force this screen layer completely above the canvas elements */
         }
         #overlay-title {
             color: #4caf50;
@@ -72,7 +79,7 @@
             cursor: pointer;
             margin-top: 25px;
             box-shadow: 0 4px 0 #2e7d32;
-            pointer-events: auto; /* Ensure click registration */
+            z-index: 102; /* Force individual clickable element stack priority */
         }
         button:hover { background: #45a049; }
         button:active { transform: translateY(2px); box-shadow: 0 2px 0 #2e7d32; }
@@ -144,12 +151,10 @@
         window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
         window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
         
-        // Fixed: Explicit click assignment
-        actionBtn.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // Native interactive event listener execution
+        actionBtn.addEventListener('click', function() {
             startNewRun();
-        };
+        });
 
         function startNewRun() {
             overlay.style.display = 'none';
@@ -161,7 +166,7 @@
             particles = [];
             spawnTimer = 0;
             
-            // Prefill initial scenery
+            // Prefill background context
             for(let i=0; i<15; i++) {
                 spawnEnvironmentObject(Math.random() * 0.8);
             }
@@ -174,7 +179,7 @@
             deaths++;
             deathsVal.textContent = deaths;
             
-            // Death explosion explosion effects
+            // Generate visual blast feedback debris
             for(let i=0; i<40; i++) {
                 particles.push({
                     x: canvas.width / 2 + (Math.random() - 0.5) * 300,
@@ -187,7 +192,7 @@
                 });
             }
 
-            // Bring up fixed UI screen
+            // Timeout wrapper to let animation particles pop before menu visibility returns
             setTimeout(() => {
                 overlayTitle.textContent = "THE TREES OUTPLAYED YOU";
                 overlayTitle.style.color = "#ff3b3b";
@@ -223,14 +228,14 @@
         }
 
         function update() {
-            // Background Canvas Drawing
+            // Render Backdrops
             ctx.fillStyle = '#b3e5fc';
             ctx.fillRect(0, 0, canvas.width, HORIZON_Y);
 
             ctx.fillStyle = '#8d6e63';
             ctx.fillRect(0, HORIZON_Y, canvas.width, canvas.height - HORIZON_Y);
 
-            // Ground Track Perspective Guide Lines
+            // Horizon Depth Tracks
             ctx.strokeStyle = '#71584f';
             ctx.lineWidth = 2;
             for(let i = -4; i <= 4; i++) {
@@ -240,7 +245,7 @@
                 ctx.stroke();
             }
 
-            // Progress HUD Bar
+            // HUD Progress Render Check
             if (gameActive) {
                 ctx.fillStyle = "rgba(0,0,0,0.5)";
                 ctx.fillRect(20, 20, 200, 15);
@@ -268,7 +273,7 @@
                 handleProjectiles();
             }
 
-            // Draw trees based on depth layers
+            // Layer sort geometry pipeline
             forestObjects.sort((a, b) => b.z - a.z);
             handleForestObjects();
 
@@ -290,7 +295,3 @@
                 let scale = 1 / obj.z;
                 let screenX = (canvas.width / 2) + (obj.xOffset - playerX) * scale;
                 let screenY = HORIZON_Y + (120 * scale);
-                let objSize = 40 * scale;
-
-                // Game Trap Processing AI
-                if (gameActive && obj.z < 0.6) { 
